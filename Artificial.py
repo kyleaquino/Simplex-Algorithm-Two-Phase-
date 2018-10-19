@@ -1,56 +1,18 @@
 class ArtificialModule:
-    def __init__(self,c,cons,b):
-        self.c = c;
-        self.cons = cons;
-        self.b = b;
-        self.originaltableu = []
-        self.phaseOnetableu = []
-        self.phaseTwotableu = []
-        self.opt = False
-        self.unbounded = False
-        self.infeasible = False
 
-        self.parseTableu()
-        self.phaseOne_Simplex()
-        self.phaseTwo_Simplex()
-
-    def getOriginalTableu(self):
-        return self.originaltableu
-
-    def getPhaseOneTableu(self):
-        return self.phaseOnetableu
-
-    def getPhaseTwoTableu(self):
-        return self.phaseTwotableu
-
-    def isUnbounded(self):
-        return self.unbounded
-
-    def isOptimal(self):
-        return self.opt
-
-    def isInfeasible(self):
-        return self.infeasible
-
-    def printTableu(self, tableu):
-        print ('----------------------')
-        for row in tableu:
-            print (" ",row)
-        print ('----------------------')
-        return
+    def __init__(self, c, b, cons):
+        self.c = c
+        self.b = b
+        self.cons = cons
 
     def parseTableu(self):
-
-        c = self.c
-        b = self.b
-        cons = self.cons
-
-        tableu = []
-        m = len(cons)
-        n = len(c)
-        c.insert(0, 0.0)
-        artificial = []
+        c, b, cons = self.c, self.b, self.cons
+        tableu, artificial = [],[]
+        m, n = len(cons), len(c)
         sigma = [0.0]
+
+        c.insert(0, 0.0)
+
         i = 0
         while (i < n):
             sigma.append(0.0)
@@ -78,15 +40,12 @@ class ArtificialModule:
                     tableu[1][j] -= xij
                     j += 1
             i += 1
-        self.originaltableu = tableu
+        return tableu
 
-    def phaseOne_Simplex(self):
+    def phaseOne_Simplex(self,tableu):
         THETA_INFINITE = -1
-        tableu = self.originaltableu
-        opt = False
-        unbounded  = False
-        n = len(tableu[0])
-        m = len(tableu) - 2
+        opt, unbounded = False, False
+        n, m = len(tableu[0]), len(tableu) - 2
 
         while ((not opt) and (not unbounded)):
             min = 0.0
@@ -99,7 +58,6 @@ class ArtificialModule:
                 j += 1
             if min == 0.0:
                 opt = True
-                self.opt = True
                 continue
             pivotRow = i = 0
             minTheta = THETA_INFINITE
@@ -114,23 +72,19 @@ class ArtificialModule:
                 i += 1
             if minTheta == THETA_INFINITE:
                 unbounded = True
-                self.unbounded = True
                 continue
 
             tableu = self.pivotOn(tableu, pivotRow, pivotCol)
+        return tableu, opt, unbounded
 
-        self.phaseOnetableu = tableu
+    def phaseTwo_Simplex(self, tableu):
+        tableu, opt, unbounded = self.phaseOne_Simplex(tableu)
 
-    def phaseTwo_Simplex(self):
-        self.phaseOne_Simplex()
-
-        tableu = self.phaseOnetableu
         infeasible  = False
         sigma = tableu[1][0]
 
         if (sigma > 0):
             infeasible  = True
-            self.infeasible = True
         else:
             #sigma is equals to zero
             tableu = self.drive_out_artificial_basis(tableu)
@@ -142,17 +96,14 @@ class ArtificialModule:
             while (i < len(tableu)):
                 tableu[i] = tableu[i][:n]
                 i += 1
-            tableu = self.simplex(tableu)
+            tableu, opt, unbounded = self.simplex(tableu)
 
-        self.phaseTwotableu = tableu
+        return tableu, infeasible, opt, unbounded
 
     def simplex(self, tableu):
         THETA_INFINITE = -1
-        opt   = False
-        unbounded  = False
-
-        n = len(tableu[0])
-        m = len(tableu) - 1
+        opt, unbounded = False, False
+        n, m = len(tableu[0]), len(tableu) - 1
 
         while ((not opt) and (not unbounded)):
             min = 0.0
@@ -165,7 +116,6 @@ class ArtificialModule:
                 j += 1
             if min == 0.0:
                 opt = True
-                self.opt = True
                 continue
             pivotRow = i = 0
             minTheta = THETA_INFINITE
@@ -180,10 +130,9 @@ class ArtificialModule:
                 i += 1
             if minTheta == THETA_INFINITE:
                 unbounded = True
-                self.unbounded = True
                 continue
             tableu = pivotOn(tableu, pivotRow, pivotCol)
-        return tableu
+        return tableu, opt, unbounded
 
     def pivotOn(self, tableu, row, col):
         j = 0
